@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Clock, Users, Flame, Share2, Heart, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Clock, Users, Flame, Share2, Heart, Loader2, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Recipe } from '../types';
 
 interface RecipeModalProps {
@@ -7,14 +7,28 @@ interface RecipeModalProps {
   isFavorite: boolean;
   onToggleFavorite: (id: string) => void;
   onClose: () => void;
+  onNext?: () => void;
+  onPrev?: () => void;
 }
 
-const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, isFavorite, onToggleFavorite, onClose }) => {
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1495195129352-aec325a55b65?auto=format&fit=crop&q=80&w=800';
+
+const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, isFavorite, onToggleFavorite, onClose, onNext, onPrev }) => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [imgSrc, setImgSrc] = useState(recipe?.imageUrl || FALLBACK_IMAGE);
   
+  // Reset image loader state and source when recipe changes
+  useEffect(() => {
+    setIsImageLoaded(false);
+    if (recipe) {
+      setImgSrc(recipe.imageUrl);
+    }
+  }, [recipe?.id]);
+
   if (!recipe) return null;
 
-  const handleShare = async () => {
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     const text = `תראו איזה מתכון מגניב מצאתי בשף קטן: ${recipe.title}\n\n${recipe.description}`;
     if (navigator.share) {
       try {
@@ -32,16 +46,49 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, isFavorite, onToggleF
     }
   };
 
+  const handleImageError = () => {
+    setImgSrc(FALLBACK_IMAGE);
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-cardbg rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-gray-700 shadow-2xl relative flex flex-col md:flex-row">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
+      {/* Navigation Buttons (Desktop Floating) */}
+      <div className="hidden md:flex fixed inset-x-8 top-1/2 -translate-y-1/2 justify-between pointer-events-none z-[60]">
+        {onPrev ? (
+          <button 
+            onClick={(e) => { e.stopPropagation(); onPrev(); }}
+            className="pointer-events-auto p-4 bg-black/50 hover:bg-black/80 text-white rounded-full transition-all hover:scale-110 active:scale-90 group relative"
+          >
+            <ChevronRight size={32} />
+            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 hidden group-hover:block bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-xl whitespace-nowrap">
+              מתכון קודם
+            </div>
+          </button>
+        ) : <div />}
+        {onNext ? (
+          <button 
+            onClick={(e) => { e.stopPropagation(); onNext(); }}
+            className="pointer-events-auto p-4 bg-black/50 hover:bg-black/80 text-white rounded-full transition-all hover:scale-110 active:scale-90 group relative"
+          >
+            <ChevronLeft size={32} />
+            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 hidden group-hover:block bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-xl whitespace-nowrap">
+              מתכון הבא
+            </div>
+          </button>
+        ) : <div />}
+      </div>
+
+      <div className="bg-cardbg rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-gray-700 shadow-2xl relative flex flex-col md:flex-row animate-in slide-in-from-bottom-4 duration-300" onClick={(e) => e.stopPropagation()}>
         
         {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute top-4 left-4 z-10 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
+          className="absolute top-4 left-4 z-10 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors group"
         >
           <X size={24} />
+          <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 hidden group-hover:block bg-gray-900 text-white text-[10px] px-2 py-1 rounded shadow-xl whitespace-nowrap">
+            סגור
+          </div>
         </button>
 
         {/* Image Section */}
@@ -52,13 +99,28 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, isFavorite, onToggleF
             </div>
           )}
           <img 
-            src={recipe.imageUrl} 
+            src={imgSrc} 
             alt={recipe.title} 
             loading="lazy"
             onLoad={() => setIsImageLoaded(true)}
+            onError={handleImageError}
             className={`w-full h-full object-cover transition-opacity duration-700 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
           />
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-cardbg to-transparent h-24 md:hidden"></div>
+          
+          {/* Mobile Quick Nav */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 md:hidden">
+            {onPrev && (
+              <button onClick={onPrev} className="bg-black/60 p-2 rounded-full text-white">
+                <ChevronRight size={24} />
+              </button>
+            )}
+            {onNext && (
+              <button onClick={onNext} className="bg-black/60 p-2 rounded-full text-white">
+                <ChevronLeft size={24} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Content Section */}
@@ -69,15 +131,25 @@ const RecipeModal: React.FC<RecipeModalProps> = ({ recipe, isFavorite, onToggleF
                 {recipe.category}
               </span>
               <div className="flex gap-2">
-                <button 
-                  onClick={() => onToggleFavorite(recipe.id)} 
-                  className={`p-2 rounded-full transition-colors ${isFavorite ? 'text-primary' : 'text-gray-400 hover:text-white'}`}
-                >
-                  <Heart size={24} fill={isFavorite ? "currentColor" : "none"} />
-                </button>
-                <button onClick={handleShare} className="text-gray-400 hover:text-white p-2 transition-colors">
-                  <Share2 size={24} />
-                </button>
+                <div className="relative group/action">
+                  <button 
+                    onClick={() => onToggleFavorite(recipe.id)} 
+                    className={`p-2 rounded-full transition-colors ${isFavorite ? 'text-primary' : 'text-gray-400 hover:text-white'}`}
+                  >
+                    <Heart size={24} fill={isFavorite ? "currentColor" : "none"} />
+                  </button>
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover/action:block bg-gray-900 text-white text-[10px] px-2 py-1 rounded shadow-xl whitespace-nowrap">
+                    {isFavorite ? 'הסר ממועדפים' : 'הוסף למועדפים'}
+                  </div>
+                </div>
+                <div className="relative group/action">
+                  <button onClick={handleShare} className="text-gray-400 hover:text-white p-2 transition-colors">
+                    <Share2 size={24} />
+                  </button>
+                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover/action:block bg-gray-900 text-white text-[10px] px-2 py-1 rounded shadow-xl whitespace-nowrap">
+                    שיתוף
+                  </div>
+                </div>
               </div>
             </div>
             <h2 className="text-3xl font-bold text-white mb-2">{recipe.title}</h2>

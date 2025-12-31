@@ -10,9 +10,12 @@ interface RecipeCardProps {
   onClick: (recipe: Recipe) => void;
 }
 
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1495195129352-aec325a55b65?auto=format&fit=crop&q=80&w=800';
+
 const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, isFavorite, viewMode, onToggleFavorite, onClick }) => {
   const [showQuickView, setShowQuickView] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [imgSrc, setImgSrc] = useState(recipe.imageUrl);
 
   const difficultyColor = {
     'קל': 'text-green-400',
@@ -49,6 +52,10 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, isFavorite, viewMode, o
       navigator.clipboard.writeText(`${text}\n${window.location.href}`);
       alert('הקישור הועתק ללוח!');
     }
+  };
+
+  const handleImageError = () => {
+    setImgSrc(FALLBACK_IMAGE);
   };
 
   const quickViewOverlay = (
@@ -93,10 +100,11 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, isFavorite, viewMode, o
         </div>
       )}
       <img 
-        src={recipe.imageUrl} 
+        src={imgSrc} 
         alt={recipe.title} 
         loading="lazy"
         onLoad={() => setIsImageLoaded(true)}
+        onError={handleImageError}
         className={`w-full h-full object-cover transition-opacity duration-500 group-hover:scale-110 ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
       />
     </div>
@@ -123,27 +131,41 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, isFavorite, viewMode, o
             <div className="flex justify-between items-start mb-1">
               <h3 className="text-lg sm:text-xl font-bold text-white truncate">{recipe.title}</h3>
               <div className="flex gap-1 sm:gap-2">
-                <button 
-                  onClick={handleQuickViewToggle}
-                  className="p-1.5 sm:p-2 rounded-full bg-black/20 text-gray-400 hover:text-white transition-colors"
-                  title="מבט מהיר"
-                >
-                  <Eye size={16} />
-                </button>
-                <button 
-                  onClick={handleShareClick}
-                  className="p-1.5 sm:p-2 rounded-full bg-black/20 text-gray-400 hover:text-white transition-colors"
-                >
-                  <Share2 size={16} />
-                </button>
-                <button 
-                  onClick={handleFavoriteClick}
-                  className={`p-1.5 sm:p-2 rounded-full transition-all duration-300 ${
-                    isFavorite ? 'bg-primary text-white' : 'bg-black/20 text-gray-400 hover:text-white'
-                  }`}
-                >
-                  <Heart size={16} fill={isFavorite ? "currentColor" : "none"} />
-                </button>
+                <div className="relative group/tooltip">
+                  <button 
+                    onClick={handleQuickViewToggle}
+                    className="p-1.5 sm:p-2 rounded-full bg-black/20 text-gray-400 hover:text-white transition-colors"
+                  >
+                    <Eye size={16} />
+                  </button>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/tooltip:block bg-gray-900 text-white text-[10px] px-2 py-0.5 rounded shadow-xl whitespace-nowrap z-50">
+                    מבט מהיר
+                  </div>
+                </div>
+                <div className="relative group/tooltip">
+                  <button 
+                    onClick={handleShareClick}
+                    className="p-1.5 sm:p-2 rounded-full bg-black/20 text-gray-400 hover:text-white transition-colors"
+                  >
+                    <Share2 size={16} />
+                  </button>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/tooltip:block bg-gray-900 text-white text-[10px] px-2 py-0.5 rounded shadow-xl whitespace-nowrap z-50">
+                    שיתוף
+                  </div>
+                </div>
+                <div className="relative group/tooltip">
+                  <button 
+                    onClick={handleFavoriteClick}
+                    className={`p-1.5 sm:p-2 rounded-full transition-all duration-300 ${
+                      isFavorite ? 'bg-primary text-white' : 'bg-black/20 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <Heart size={16} fill={isFavorite ? "currentColor" : "none"} />
+                  </button>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover/tooltip:block bg-gray-900 text-white text-[10px] px-2 py-0.5 rounded shadow-xl whitespace-nowrap z-50">
+                    {isFavorite ? 'הסר מהמועדפים' : 'הוסף למועדפים'}
+                  </div>
+                </div>
               </div>
             </div>
             <p className="text-gray-400 text-xs sm:text-sm line-clamp-2 mb-3">
@@ -190,27 +212,41 @@ const RecipeCard: React.FC<RecipeCardProps> = ({ recipe, isFavorite, viewMode, o
         </div>
         
         <div className="absolute top-2 left-2 flex flex-col gap-2">
-          <button 
-            onClick={handleFavoriteClick}
-            className={`p-2 rounded-full backdrop-blur-md transition-all duration-300 ${
-              isFavorite ? 'bg-primary text-white scale-110' : 'bg-black/40 text-white hover:bg-black/60'
-            }`}
-          >
-            <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
-          </button>
-          <button 
-            onClick={handleShareClick}
-            className="p-2 rounded-full backdrop-blur-md bg-black/40 text-white hover:bg-black/60 transition-all duration-300"
-          >
-            <Share2 size={18} />
-          </button>
-          <button 
-            onClick={handleQuickViewToggle}
-            className="p-2 rounded-full backdrop-blur-md bg-black/40 text-white hover:bg-black/60 transition-all duration-300"
-            title="מבט מהיר"
-          >
-            <Eye size={18} />
-          </button>
+          <div className="relative group/tooltip">
+            <button 
+              onClick={handleFavoriteClick}
+              className={`p-2 rounded-full backdrop-blur-md transition-all duration-300 ${
+                isFavorite ? 'bg-primary text-white scale-110' : 'bg-black/40 text-white hover:bg-black/60'
+              }`}
+            >
+              <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
+            </button>
+            <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 hidden group-hover/tooltip:block bg-gray-900 text-white text-[10px] px-2 py-0.5 rounded shadow-xl whitespace-nowrap z-50">
+              {isFavorite ? 'הסר ממועדפים' : 'הוסף למועדפים'}
+            </div>
+          </div>
+          <div className="relative group/tooltip">
+            <button 
+              onClick={handleShareClick}
+              className="p-2 rounded-full backdrop-blur-md bg-black/40 text-white hover:bg-black/60 transition-all duration-300"
+            >
+              <Share2 size={18} />
+            </button>
+            <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 hidden group-hover/tooltip:block bg-gray-900 text-white text-[10px] px-2 py-0.5 rounded shadow-xl whitespace-nowrap z-50">
+              שיתוף
+            </div>
+          </div>
+          <div className="relative group/tooltip">
+            <button 
+              onClick={handleQuickViewToggle}
+              className="p-2 rounded-full backdrop-blur-md bg-black/40 text-white hover:bg-black/60 transition-all duration-300"
+            >
+              <Eye size={18} />
+            </button>
+            <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 hidden group-hover/tooltip:block bg-gray-900 text-white text-[10px] px-2 py-0.5 rounded shadow-xl whitespace-nowrap z-50">
+              מבט מהיר
+            </div>
+          </div>
         </div>
 
         {recipe.isGenerated && (
